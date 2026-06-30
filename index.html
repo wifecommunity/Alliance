@@ -830,7 +830,69 @@ FS.watch('schedule', data => {
   if (APP.page === 'admin' && APP.adminSection === 'schedule') renderAdminSchedule(data);
   const ovEl = document.getElementById('ov-sch');
   if (ovEl) ovEl.textContent = data.filter(s => s.status === 'upcoming').length;
+  if (typeof updateLiveBanner === 'function') updateLiveBanner();
 });
+
+// ══════════════════════════════════════════════════════════════
+//  LIVE CLOCK + COUNTDOWN BANNER (header)
+// ══════════════════════════════════════════════════════════════
+const HARI_ID = ['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'];
+const BULAN_ID = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
+
+function getNextEvent() {
+  const now = new Date();
+  const upcoming = scheduleData
+    .filter(s => s.status === 'upcoming' && s.date)
+    .map(s => {
+      const dt = new Date(`${s.date}T${s.time || '00:00'}:00`);
+      return { ...s, _dt: dt };
+    })
+    .filter(s => !isNaN(s._dt.getTime()) && s._dt.getTime() >= now.getTime() - 60000)
+    .sort((a, b) => a._dt - b._dt);
+  return upcoming[0] || null;
+}
+
+function formatCountdown(ms) {
+  if (ms <= 0) return 'Dimulai!';
+  const totalSec = Math.floor(ms / 1000);
+  const d = Math.floor(totalSec / 86400);
+  const h = Math.floor((totalSec % 86400) / 3600);
+  const m = Math.floor((totalSec % 3600) / 60);
+  const s = totalSec % 60;
+  if (d > 0) return `${d}h ${h}j ${m}m`;
+  if (h > 0) return `${h}j ${m}m ${s}d`;
+  return `${m}m ${s}d`;
+}
+
+function updateLiveBanner() {
+  const now = new Date();
+  const timeEl = document.getElementById('lb-time');
+  const dateEl = document.getElementById('lb-date');
+  if (timeEl) timeEl.textContent = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
+  if (dateEl) dateEl.textContent = `${HARI_ID[now.getDay()]}, ${now.getDate()} ${BULAN_ID[now.getMonth()]} ${now.getFullYear()}`;
+
+  const wrap = document.getElementById('lb-countdown-wrap');
+  const divider = document.getElementById('lb-divider');
+  const cdLabel = document.getElementById('lb-cd-label');
+  const cdTime = document.getElementById('lb-cd-time');
+  if (!wrap || !cdTime) return;
+
+  const next = getNextEvent();
+  if (!next) {
+    wrap.style.display = 'none';
+    if (divider) divider.style.display = 'none';
+    return;
+  }
+  wrap.style.display = 'block';
+  if (divider) divider.style.display = 'block';
+  const diff = next._dt.getTime() - now.getTime();
+  cdLabel.innerHTML = `<i class="fas fa-hourglass-half mr-1"></i>${(next.title || next.opponent || 'EVENT').toUpperCase().slice(0, 18)}`;
+  cdTime.textContent = formatCountdown(diff);
+}
+
+setInterval(updateLiveBanner, 1000);
+document.addEventListener('DOMContentLoaded', updateLiveBanner);
+updateLiveBanner();
 
 function renderSchedule() {
   const el = document.getElementById('schedule-list');
@@ -1129,8 +1191,8 @@ function renderAchievement() {
   if (!achData.length) { el.innerHTML = emptyState('Belum ada prestasi'); return; }
   el.innerHTML = achData.map(a => `
     <div class="ach-card" data-aos="fade-up">
-      <div class="w-20 h-20 mx-auto mb-4 rounded-full overflow-hidden" style="border:2px solid rgba(212,168,67,0.4)">
-        ${a.trophyPhoto ? `<img src="${a.trophyPhoto}" class="w-full h-full object-cover" loading="lazy"/>` : `<div class="w-full h-full flex items-center justify-center text-4xl" style="background:rgba(212,168,67,0.1)">🏆</div>`}
+      <div class="mx-auto mb-4 rounded-xl overflow-hidden" style="border:2px solid rgba(212,168,67,0.4)">
+        ${a.trophyPhoto ? `<img src="${a.trophyPhoto}" style="width:100%;height:auto;display:block" loading="lazy"/>` : `<div class="w-full flex items-center justify-center text-4xl" style="aspect-ratio:1;background:rgba(212,168,67,0.1)">🏆</div>`}
       </div>
       <div class="orbitron font-black text-xl gradient-text-gold mb-1">${a.rank}</div>
       <div class="text-xs orbitron mb-2" style="color:var(--text-muted)">${a.eventName}</div>
@@ -1970,6 +2032,23 @@ footer { background:var(--bg-deep); border-top:1px solid rgba(168,85,247,0.12); 
   mask-image:radial-gradient(ellipse at center,black 30%,transparent 80%);
 }
 
+/* LIVE CLOCK + COUNTDOWN BANNER */
+#live-banner {
+  display:flex; align-items:center; gap:8px;
+  padding:5px 10px; border-radius:10px;
+  background:rgba(124,58,237,0.08);
+  border:1px solid rgba(168,85,247,0.25);
+  flex-shrink:0;
+}
+#lb-divider { width:1px; height:24px; background:rgba(168,85,247,0.25); }
+@media (max-width:480px) {
+  #live-banner { padding:4px 8px; gap:6px; }
+  #lb-time { font-size:0.68rem !important; }
+  #lb-date { font-size:0.42rem !important; }
+  #lb-cd-label { font-size:0.38rem !important; }
+  #lb-cd-time { font-size:0.62rem !important; }
+}
+
 /* RESPONSIVE */
 @media (max-width:768px) {
   .hide-mobile { display:none !important; }
@@ -2024,6 +2103,20 @@ footer { background:var(--bg-deep); border-top:1px solid rgba(168,85,247,0.12); 
         <div class="orbitron leading-none mt-0.5 sq-tagline" style="font-size:0.45rem;color:var(--text-muted);letter-spacing:0.08em">Warriors In Fierce Engagements</div>
       </div>
     </button>
+
+    <!-- LIVE CLOCK + COUNTDOWN BANNER -->
+    <div id="live-banner">
+      <div style="text-align:center;line-height:1.1">
+        <div id="lb-time" class="orbitron font-bold" style="font-size:0.8rem;color:var(--gold)">--:--:--</div>
+        <div id="lb-date" class="orbitron" style="font-size:0.5rem;color:var(--text-muted);letter-spacing:0.04em;white-space:nowrap">-- --- ----</div>
+      </div>
+      <div id="lb-divider" style="display:none"></div>
+      <div id="lb-countdown-wrap" style="display:none;text-align:center;line-height:1.1">
+        <div id="lb-cd-label" class="orbitron" style="font-size:0.45rem;color:var(--purple-neon);letter-spacing:0.04em;white-space:nowrap"><i class="fas fa-hourglass-half mr-1"></i>NEXT EVENT</div>
+        <div id="lb-cd-time" class="orbitron font-bold" style="font-size:0.72rem;color:#F0EEFF;white-space:nowrap">--</div>
+      </div>
+    </div>
+
     <div class="hide-mobile flex items-center gap-0.5 flex-wrap justify-center" id="desktop-nav"></div>
     <div class="flex items-center gap-2">
       <span id="btn-admin-panel" class="hidden"></span>
