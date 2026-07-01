@@ -306,11 +306,20 @@ FS.watch('management', data => {
   if (APP.page === 'admin' && APP.adminSection === 'management') renderAdminMgmt(mgmtData);
 });
 
+const MGMT_ORDER = ['Owner','Co-Owner','Manager','Co-Manager','Coach','Head Coach','Assistant Coach','Captain','Vice Captain'];
+function sortMgmt(data) {
+  return [...data].sort((a, b) => {
+    const ai = MGMT_ORDER.findIndex(p => (a.position||'').toLowerCase().includes(p.toLowerCase()));
+    const bi = MGMT_ORDER.findIndex(p => (b.position||'').toLowerCase().includes(p.toLowerCase()));
+    return (ai === -1 ? 99 : ai) - (bi === -1 ? 99 : bi);
+  });
+}
+
 function renderManagement(data) {
   const el = document.getElementById('management-grid');
   if (!el) return;
   if (!data.length) { el.innerHTML = emptyState('Belum ada data management'); return; }
-  el.innerHTML = data.map(m => `
+  el.innerHTML = sortMgmt(data).map(m => `
     <div class="glass p-5 text-center" data-aos="fade-up">
       <!-- Avatar 16:9 -->
       <div style="width:100%;aspect-ratio:16/9;border-radius:10px;overflow:hidden;margin:0 auto 14px;border:2px solid var(--border-gold);background:rgba(124,58,237,0.15)">
@@ -426,7 +435,7 @@ function renderAdminMgmt(data) {
     <th class="text-left py-2 px-3 orbitron text-xs" style="color:var(--text-muted)">KONTAK</th>
     <th class="text-left py-2 px-3 orbitron text-xs" style="color:var(--text-muted)">AKSI</th>
   </tr></thead><tbody>
-  ${data.map(m => `<tr style="border-bottom:1px solid rgba(168,85,247,0.1)">
+  ${sortMgmt(data).map(m => `<tr style="border-bottom:1px solid rgba(168,85,247,0.1)">
     <td class="py-2 px-3">
       <div style="width:56px;aspect-ratio:16/9;border-radius:5px;overflow:hidden;background:rgba(124,58,237,0.2)">
         ${m.photo ? `<img src="${m.photo}" style="width:100%;height:100%;object-fit:cover"/>` : '<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center">👤</div>'}
@@ -2749,6 +2758,159 @@ document.addEventListener('DOMContentLoaded', () => {
     syncEmail();
     setInterval(syncEmail, 2000);
   }
+});
+</script>
+<!-- ══════════════════════════════════════════════════════
+     BOTTOM NAV BAR (mobile)
+     ══════════════════════════════════════════════════════ -->
+<style>
+#bottom-nav {
+  display:flex;
+  position:fixed; bottom:0; left:0; right:0; z-index:999;
+  background:rgba(4,3,10,0.97); backdrop-filter:blur(20px);
+  border-top:1px solid rgba(168,85,247,0.25);
+  padding:6px 0 max(6px, env(safe-area-inset-bottom));
+}
+@media (min-width:769px) { #bottom-nav { display:none !important; } }
+.bn-item {
+  flex:1; display:flex; flex-direction:column; align-items:center;
+  justify-content:center; gap:3px; padding:4px 2px;
+  background:none; border:none; cursor:pointer; transition:all 0.2s;
+  color:var(--text-muted); font-family:'Orbitron',sans-serif;
+  font-size:0.45rem; letter-spacing:0.03em; font-weight:600;
+  -webkit-tap-highlight-color:transparent;
+}
+.bn-item i { font-size:1.1rem; transition:all 0.2s; }
+.bn-item.active { color:var(--purple-neon); }
+.bn-item.active i { text-shadow:0 0 10px rgba(168,85,247,0.7); }
+.bn-item:active { transform:scale(0.92); }
+
+/* MORE DRAWER */
+#bn-drawer {
+  position:fixed; bottom:-100%; left:0; right:0; z-index:998;
+  background:rgba(8,6,20,0.98); backdrop-filter:blur(24px);
+  border-top:1px solid rgba(168,85,247,0.3);
+  border-radius:20px 20px 0 0;
+  padding:12px 16px max(16px, env(safe-area-inset-bottom));
+  transition:bottom 0.35s cubic-bezier(0.4,0,0.2,1);
+}
+#bn-drawer.open { bottom:60px; }
+#bn-drawer-overlay {
+  display:none; position:fixed; inset:0; z-index:997;
+  background:rgba(0,0,0,0.5);
+}
+#bn-drawer-overlay.open { display:block; }
+.bn-drawer-handle {
+  width:40px; height:4px; background:rgba(168,85,247,0.4);
+  border-radius:2px; margin:0 auto 14px;
+}
+.bn-drawer-grid {
+  display:grid; grid-template-columns:repeat(4,1fr); gap:8px;
+}
+.bn-drawer-item {
+  display:flex; flex-direction:column; align-items:center; gap:6px;
+  padding:12px 4px; border-radius:10px; cursor:pointer;
+  background:rgba(124,58,237,0.07); border:1px solid rgba(168,85,247,0.12);
+  color:var(--text-secondary); font-family:'Orbitron',sans-serif;
+  font-size:0.42rem; font-weight:600; letter-spacing:0.03em;
+  transition:all 0.2s; -webkit-tap-highlight-color:transparent;
+  text-align:center;
+}
+.bn-drawer-item i { font-size:1.2rem; color:var(--purple-neon); }
+.bn-drawer-item:active, .bn-drawer-item.active {
+  background:rgba(124,58,237,0.2); border-color:rgba(168,85,247,0.4);
+  color:var(--purple-neon);
+}
+/* Push page content up so bottom nav doesn't cover it */
+@media (max-width:768px) {
+  #app { padding-bottom:64px; }
+}
+</style>
+
+<!-- Bottom Nav HTML -->
+<nav id="bottom-nav">
+  <button class="bn-item active" id="bn-dashboard" onclick="bnNavigate('dashboard')">
+    <i class="fas fa-home"></i>DASHBOARD
+  </button>
+  <button class="bn-item" id="bn-management" onclick="bnNavigate('management')">
+    <i class="fas fa-crown"></i>MGMT
+  </button>
+  <button class="bn-item" id="bn-roster" onclick="bnNavigate('roster')">
+    <i class="fas fa-users"></i>ROSTER
+  </button>
+  <button class="bn-item" id="bn-schedule" onclick="bnNavigate('schedule')">
+    <i class="fas fa-calendar"></i>JADWAL
+  </button>
+  <button class="bn-item" id="bn-more" onclick="toggleBnDrawer()">
+    <i class="fas fa-grid-2"></i>LAINNYA
+  </button>
+</nav>
+
+<!-- More Drawer -->
+<div id="bn-drawer-overlay" onclick="closeBnDrawer()"></div>
+<div id="bn-drawer">
+  <div class="bn-drawer-handle"></div>
+  <div class="bn-drawer-grid" id="bn-drawer-grid"></div>
+</div>
+
+<script>
+const BN_MORE_ITEMS = [
+  { id:'match',        label:'HASIL\nMATCH',   icon:'fas fa-trophy' },
+  { id:'achievement',  label:'PRESTASI',        icon:'fas fa-medal' },
+  { id:'rules',        label:'RULES',           icon:'fas fa-scroll' },
+  { id:'announcement', label:'PENGUMUMAN',      icon:'fas fa-bullhorn' },
+  { id:'meta',         label:'META\nHERO',      icon:'fas fa-sword' },
+  { id:'poster',       label:'POSTER',          icon:'fas fa-image' },
+];
+
+const BN_MAIN = ['dashboard','management','roster','schedule'];
+
+function buildBnDrawer() {
+  const grid = document.getElementById('bn-drawer-grid');
+  if (!grid) return;
+  grid.innerHTML = BN_MORE_ITEMS.map(item =>
+    `<button class="bn-drawer-item" id="bnd-${item.id}" onclick="bnNavigate('${item.id}');closeBnDrawer()"><i class="${item.icon}"></i><span style="white-space:pre-line;line-height:1.2">${item.label}</span></button>`
+  ).join('');
+}
+
+function updateBnActive(page) {
+  document.querySelectorAll('.bn-item').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.bn-drawer-item').forEach(b => b.classList.remove('active'));
+  if (BN_MAIN.includes(page)) {
+    document.getElementById('bn-' + page)?.classList.add('active');
+  } else if (page !== 'admin' && page !== 'admin-login') {
+    document.getElementById('bnd-' + page)?.classList.add('active');
+    document.getElementById('bn-more')?.classList.add('active');
+  }
+}
+
+function bnNavigate(page) {
+  if (typeof window.navigate === 'function') window.navigate(page);
+  updateBnActive(page);
+}
+
+function toggleBnDrawer() {
+  const d = document.getElementById('bn-drawer');
+  const o = document.getElementById('bn-drawer-overlay');
+  if (d.classList.contains('open')) { closeBnDrawer(); }
+  else { d.classList.add('open'); o.classList.add('open'); }
+}
+
+function closeBnDrawer() {
+  document.getElementById('bn-drawer')?.classList.remove('open');
+  document.getElementById('bn-drawer-overlay')?.classList.remove('open');
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+  buildBnDrawer();
+  let _t = setInterval(() => {
+    if (typeof window.navigate === 'function' && !window._bnPatched) {
+      window._bnPatched = true;
+      const _orig = window.navigate;
+      window.navigate = function(page) { _orig(page); updateBnActive(page); };
+      clearInterval(_t);
+    }
+  }, 50);
 });
 </script>
 
