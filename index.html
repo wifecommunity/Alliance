@@ -5,6 +5,17 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>W.I.F.E ALLIANCE – Squad Management System v4</title>
 <meta name="description" content="W.I.F.E ALLIANCE – Sistem Manajemen Internal Squad Mobile Legends"/>
+
+<!-- PWA -->
+<link rel="manifest" href="manifest.json"/>
+<meta name="theme-color" content="#7C3AED"/>
+<link rel="icon" type="image/png" href="alliance-icon-favicon.png"/>
+<link rel="apple-touch-icon" href="alliance-icon-apple-touch.png"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="WIFE Alliance"/>
+<meta name="mobile-web-app-capable" content="yes"/>
+
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=Rajdhani:wght@300;400;500;600;700&family=Inter:wght@300;400;500&display=swap" rel="stylesheet"/>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
@@ -2912,6 +2923,15 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   }, 50);
 });
+</script>
+
+<!-- PWA: register service worker -->
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').catch(err => console.warn('SW register failed', err));
+  });
+}
 </script>
 
 </body>
