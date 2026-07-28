@@ -317,7 +317,7 @@ FS.watch('management', data => {
   if (APP.page === 'admin' && APP.adminSection === 'management') renderAdminMgmt(mgmtData);
 });
 
-const MGMT_ORDER = ['Owner','Co-Owner','Manager','Co-Manager','Coach','Head Coach','Assistant Coach','Captain','Vice Captain'];
+const MGMT_ORDER = ['Owner','Asisten Owner','Manager','Asisten Manager','Kapten','Coach','Analisa'];
 function sortMgmt(data) {
   return [...data].sort((a, b) => {
     const ai = MGMT_ORDER.findIndex(p => (a.position||'').toLowerCase().includes(p.toLowerCase()));
@@ -365,7 +365,7 @@ window._openMgmtForm = function(id = null) {
           <input id="m-name" class="swal-input" placeholder="Nama Lengkap" value="${m?.name||''}"/></div>
         <div><label class="swal-label">JABATAN</label>
           <select id="m-pos" class="swal-input">
-            ${['Owner','Manager','Kapten','Wakil Kapten','Coach','Analyst'].map(p=>`<option ${m?.position===p?'selected':''}>${p}</option>`).join('')}
+            ${['Owner','Asisten Owner','Manager','Asisten Manager','Kapten','Coach','Analisa'].map(p=>`<option ${m?.position===p?'selected':''}>${p}</option>`).join('')}
           </select></div>
         <div><label class="swal-label">BIO SINGKAT</label>
           <textarea id="m-bio" class="swal-input" placeholder="Bio singkat" rows="2">${m?.bio||''}</textarea></div>
@@ -721,12 +721,12 @@ function renderMeta() {
   el.innerHTML = data.map(m => `
     <div class="meta-card" data-aos="fade-up">
       <div class="relative w-full" style="aspect-ratio:4/3;overflow:hidden;background:linear-gradient(135deg,rgba(124,58,237,0.2),rgba(212,168,67,0.1))">
-        ${m.photo ? `<img src="${m.photo}" class="w-full h-full object-cover" loading="lazy"/>` : `<div class="w-full h-full flex items-center justify-center text-5xl">⚔️</div>`}
+        ${m.photo ? `<img src="${m.photo}" class="w-full h-full object-cover" loading="lazy"/>` : `<div class="w-full h-full flex items-center justify-center text-5xl">${m.icon||'⚔️'}</div>`}
         <div class="absolute top-2 right-2"><span class="tier-badge ${tierClass(m.tier)}">${m.tier}</span></div>
         <div class="absolute top-2 left-2"><span class="role-badge ${roleClass(m.role)} text-xs">${m.role}</span></div>
       </div>
       <div class="p-4">
-        <div class="orbitron font-bold text-sm truncate">${m.heroName}</div>
+        <div class="orbitron font-bold text-sm truncate">${m.icon?`${m.icon} `:''}${m.heroName}</div>
         <div class="text-xs mt-1 mb-2" style="color:var(--text-muted)">${m.status||'Meta'}</div>
         <div class="flex gap-2 text-xs flex-wrap">
           ${m.pickPriority ? `<span style="color:#4ADE80"><i class="fas fa-hand-pointer mr-0.5"></i>Pick ${m.pickPriority}</span>` : ''}
@@ -757,6 +757,7 @@ window._openMetaForm = function(id = null) {
     background: '#0E0B1F', color: '#F0EEFF', width: '650px',
     html: `<div class="grid grid-cols-2 gap-3 text-left" style="font-family:Rajdhani">
       <div class="col-span-2"><label class="swal-label">NAMA HERO</label><input id="m-hname" class="swal-input" value="${m?.heroName||''}"/></div>
+      <div><label class="swal-label">IKON (emoji)</label><input id="m-hicon" class="swal-input" value="${m?.icon||''}" placeholder="⚔️"/></div>
       <div><label class="swal-label">ROLE</label><select id="m-hrole" class="swal-input">
         ${['EXP Lane','Jungler','Mid Lane','Gold Lane','Roamer'].map(v=>`<option ${m?.role===v?'selected':''}>${v}</option>`).join('')}
       </select></div>
@@ -783,6 +784,7 @@ window._openMetaForm = function(id = null) {
     preConfirm: async () => {
       const data = {
         heroName: document.getElementById('m-hname').value.trim(),
+        icon: document.getElementById('m-hicon').value.trim(),
         role: document.getElementById('m-hrole').value,
         tier: document.getElementById('m-htier').value,
         status: document.getElementById('m-hstatus').value,
@@ -797,7 +799,15 @@ window._openMetaForm = function(id = null) {
       };
       if (!data.heroName) { Swal.showValidationMessage('Nama hero wajib diisi'); return false; }
       const file = document.getElementById('m-hphoto').files[0];
-      if (file) { Swal.showLoading(); data.photo = await uploadToCloudinary(file, 'wife-alliance/meta'); }
+      if (file) {
+        Swal.showLoading();
+        try {
+          data.photo = await uploadToCloudinary(file, 'wife-alliance/meta');
+        } catch (e) {
+          Swal.showValidationMessage('Upload foto gagal: ' + e.message);
+          return false;
+        }
+      }
       return data;
     }
   }).then(async res => {
@@ -830,7 +840,7 @@ function renderAdminMeta(data) {
     <th class="text-left py-2 px-3 orbitron text-xs" style="color:var(--text-muted)">AKSI</th>
   </tr></thead><tbody>
   ${data.map(m => `<tr style="border-bottom:1px solid rgba(168,85,247,0.08)">
-    <td class="py-2 px-3 font-semibold">${m.heroName}</td>
+    <td class="py-2 px-3 font-semibold">${m.icon?`${m.icon} `:''}${m.heroName}</td>
     <td class="py-2 px-3"><span class="role-badge ${roleClass(m.role)} text-xs">${m.role}</span></td>
     <td class="py-2 px-3"><span class="tier-badge ${tierClass(m.tier)}">${m.tier}</span></td>
     <td class="py-2 px-3 text-xs" style="color:var(--text-muted)">${m.status}</td>
@@ -2564,7 +2574,8 @@ footer { background:var(--bg-deep); border-top:1px solid rgba(168,85,247,0.12); 
       <!-- ── META HERO ── -->
       <div id="asc-meta" class="admin-sec" style="display:none">
         <div class="flex items-center justify-between mb-5">
-          <h2 class="orbitron font-bold" style="color:var(--gold)">⚔ META HERO</h2>
+          <h2 class="orbitron font-bold" style="color:var(--gold)">⚔️ META HERO</h2>
+          <button onclick="_openMetaForm()" class="btn-primary" style="font-size:0.7rem;padding:8px 16px"><i class="fas fa-plus"></i> TAMBAH HERO</button>
         </div>
         <div class="glass p-5"><div id="admin-meta-list"></div></div>
       </div>
